@@ -16,8 +16,8 @@ export function getIsActiveTab(
   pathname: string,
   searchParams: ReturnType<typeof useSearchParams>,
 ) {
-  const type = searchParams.get("type");
-  const offer = searchParams.get("offer");
+  const type = searchParams?.get("type");
+  const offer = searchParams?.get("offer");
 
   if (itemId === "manage") {
     return pathname.startsWith("/dashboard");
@@ -45,11 +45,12 @@ export function getIsActiveTab(
 export function HeaderNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const safePathname = pathname ?? "/";
 
   return (
     <nav className="hidden items-center gap-2 md:flex">
       {navItems.map((item) => {
-        const isActive = getIsActiveTab(item.id, pathname, searchParams);
+        const isActive = getIsActiveTab(item.id, safePathname, searchParams);
 
         return (
           <Link

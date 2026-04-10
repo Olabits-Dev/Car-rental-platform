@@ -3,36 +3,83 @@ import Link from "next/link";
 import { HeaderNav } from "@/components/header-nav";
 import { MobileNav } from "@/components/mobile-nav";
 import { Logo } from "@/components/logo";
+import { getCurrentUser } from "@/lib/session";
 
-function HeaderNavFallback() {
+function DesktopNavFallback() {
   return (
-    <>
-      <nav className="hidden items-center gap-2 lg:flex">
-        {["Book", "Manage Trips", "Premium Rentals", "Deals", "Contact"].map((label) => (
-          <span
-            key={label}
-            className="rounded-[0.9rem] px-4 py-2 text-sm font-semibold text-[#212121]"
-          >
-            {label}
-          </span>
-        ))}
-      </nav>
-      <button
-        type="button"
-        className="inline-flex min-h-[3rem] items-center gap-2 rounded-[0.95rem] border border-[#d7d7d7] bg-white px-4 text-sm font-semibold text-[#1f1f1f] lg:hidden"
-      >
-        <span className="flex flex-col gap-[0.18rem]" aria-hidden="true">
-          <span className="h-[2px] w-4 rounded-full bg-current" />
-          <span className="h-[2px] w-4 rounded-full bg-current" />
-          <span className="h-[2px] w-4 rounded-full bg-current" />
+    <nav className="hidden items-center gap-2 lg:flex">
+      {["Book", "Manage Trips", "Premium Rentals", "Deals", "Contact"].map((label) => (
+        <span
+          key={label}
+          className="rounded-[0.9rem] px-4 py-2 text-sm font-semibold text-[#212121]"
+        >
+          {label}
         </span>
-        Menu
-      </button>
-    </>
+      ))}
+    </nav>
   );
 }
 
-export function SiteHeader() {
+function MobileNavFallback() {
+  return (
+    <div className="relative lg:hidden">
+      <button
+        type="button"
+        aria-expanded={false}
+        aria-controls="mobile-site-menu"
+        className="inline-flex min-h-[2.7rem] items-center gap-1.5 rounded-[0.9rem] border border-[#d7d7d7] bg-white px-3.5 text-[0.92rem] font-semibold text-[#1f1f1f] lg:hidden"
+      >
+        <span className="flex flex-col gap-[0.18rem]" aria-hidden="true">
+          <span className="h-[2px] w-3.5 rounded-full bg-current" />
+          <span className="h-[2px] w-3.5 rounded-full bg-current" />
+          <span className="h-[2px] w-3.5 rounded-full bg-current" />
+        </span>
+        Menu
+      </button>
+    </div>
+  );
+}
+
+function getAccountCta(role?: string) {
+  if (role === "owner") {
+    return {
+      href: "/dashboard",
+      label: "Admin Dashboard",
+      eyebrow: "Admin access",
+      description: "Open the admin dashboard to track bookings, members, and inquiries.",
+    };
+  }
+
+  if (role === "agent") {
+    return {
+      href: "/dashboard",
+      label: "Agent Dashboard",
+      eyebrow: "Agent access",
+      description: "Open the agent dashboard to manage customer follow-ups and trips.",
+    };
+  }
+
+  if (role === "member") {
+    return {
+      href: "/dashboard",
+      label: "Member Dashboard",
+      eyebrow: "Your dashboard",
+      description: "Open your dashboard to view bookings, trips, and account activity.",
+    };
+  }
+
+  return {
+    href: "/login",
+    label: "Sign in or Join",
+    eyebrow: "Customer access",
+    description: "Sign in to manage trips and move through checkout faster.",
+  };
+}
+
+export async function SiteHeader() {
+  const user = await getCurrentUser();
+  const accountCta = getAccountCta(user?.role);
+
   return (
     <header className="sticky top-0 z-40 border-b border-[#dedede] bg-[rgba(255,255,255,0.96)] backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
@@ -40,24 +87,29 @@ export function SiteHeader() {
           <Logo />
         </div>
         <div className="hidden flex-1 justify-center lg:flex">
-          <Suspense fallback={<HeaderNavFallback />}>
+          <Suspense fallback={<DesktopNavFallback />}>
             <HeaderNav />
           </Suspense>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
-            href="/login"
+            href={accountCta.href}
             className="hidden rounded-[0.85rem] border border-[#d7d7d7] px-4 py-2 text-sm font-semibold text-[#1f1f1f] transition hover:border-[#d61032] hover:bg-[#fff6f8] hover:text-[#d61032] lg:inline-flex"
           >
-            Sign in or Join
+            {accountCta.label}
           </Link>
           <div className="hidden lg:block">
             <Link href="/cars" className="button-primary">
               Show Vehicles
             </Link>
           </div>
-          <Suspense fallback={<HeaderNavFallback />}>
-            <MobileNav />
+          <Suspense fallback={<MobileNavFallback />}>
+            <MobileNav
+              accountDescription={accountCta.description}
+              accountEyebrow={accountCta.eyebrow}
+              accountHref={accountCta.href}
+              accountLabel={accountCta.label}
+            />
           </Suspense>
         </div>
       </div>

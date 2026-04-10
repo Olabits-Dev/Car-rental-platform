@@ -52,6 +52,7 @@ export default async function CarsPage({ searchParams }: CarsPageProps) {
                 src={heroCar.heroImage}
                 alt={heroCar.imageAlt}
                 fill
+                priority
                 sizes="(min-width: 1024px) 30vw, 100vw"
                 className="object-cover"
               />

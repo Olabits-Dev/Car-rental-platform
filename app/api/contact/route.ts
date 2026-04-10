@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { StoreError, createContactInquiry } from "@/lib/store";
+import {
+  AuthServiceError,
+  createContactInquiryWithAuthService,
+} from "@/lib/backend-auth";
+import {
+  SESSION_COOKIE,
+  getVerifiedSessionToken,
+} from "@/lib/session";
 import type { CarType } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
+    const sessionToken = getVerifiedSessionToken(
+      request.cookies.get(SESSION_COOKIE)?.value,
+    );
     const body = (await request.json()) as {
       name?: string;
       email?: string;
@@ -13,7 +23,7 @@ export async function POST(request: NextRequest) {
       message?: string;
     };
 
-    const inquiry = createContactInquiry({
+    const payload = await createContactInquiryWithAuthService(sessionToken, {
       name: body.name ?? "",
       email: body.email ?? "",
       phone: body.phone,
@@ -22,9 +32,9 @@ export async function POST(request: NextRequest) {
       message: body.message ?? "",
     });
 
-    return NextResponse.json({ inquiry }, { status: 201 });
+    return NextResponse.json({ inquiry: payload.inquiry }, { status: 201 });
   } catch (error) {
-    if (error instanceof StoreError) {
+    if (error instanceof AuthServiceError) {
       return NextResponse.json(
         { error: error.message },
         { status: error.statusCode },

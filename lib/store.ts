@@ -45,6 +45,7 @@ function toPublicUser(user: UserRecord): PublicUser {
     id: user.id,
     name: user.name,
     email: user.email,
+    role: user.role,
     createdAt: user.createdAt,
   };
 }
@@ -68,6 +69,8 @@ function buildSeedBooking(
     startDate,
     endDate,
     totalPrice: calculateBookingPrice(car.pricePerDay, startDate, endDate),
+    status: "confirmed",
+    assignedAgentId: null,
     createdAt: new Date().toISOString(),
   };
 }
@@ -79,6 +82,7 @@ function createSeedStore(): Store {
     id: "user_demo",
     name: "Alex Carter",
     email: "alex@rideflex.io",
+    role: "member",
     passwordHash: hashPassword("demo12345"),
     createdAt: now.toISOString(),
   };
@@ -87,6 +91,7 @@ function createSeedStore(): Store {
     id: "user_guest",
     name: "Jordan Miles",
     email: "jordan@rideflex.io",
+    role: "member",
     passwordHash: hashPassword("demo12345"),
     createdAt: now.toISOString(),
   };
@@ -326,6 +331,7 @@ export function registerUser(input: {
     id: randomUUID(),
     name,
     email,
+    role: "member",
     passwordHash: hashPassword(password),
     createdAt: new Date().toISOString(),
   };
@@ -507,6 +513,8 @@ export function createBooking(input: CreateBookingInput): BookingWithCar {
       input.endDate,
     ),
     offerCode: dealOffer?.code,
+    status: "confirmed",
+    assignedAgentId: null,
     createdAt: new Date().toISOString(),
   };
 
@@ -558,12 +566,15 @@ export function createContactInquiry(
 
   const inquiry: ContactInquiry = {
     id: randomUUID(),
+    userId: null,
     name,
     email,
     phone: phone || undefined,
     location: location || undefined,
     vehicleType,
     message,
+    status: "new",
+    assignedAgentId: null,
     createdAt: new Date().toISOString(),
   };
 

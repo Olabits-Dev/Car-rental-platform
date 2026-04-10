@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  AuthServiceError,
+  registerWithAuthService,
+} from "@/lib/backend-auth";
+import {
   SESSION_COOKIE,
   getSessionCookieOptions,
   signSessionToken,
 } from "@/lib/session";
-import { StoreError, createSession, registerUser } from "@/lib/store";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,23 +17,22 @@ export async function POST(request: NextRequest) {
       password?: string;
     };
 
-    const user = registerUser({
+    const { user, sessionToken } = await registerWithAuthService({
       name: body.name ?? "",
       email: body.email ?? "",
       password: body.password ?? "",
     });
 
-    const session = createSession(user.id);
     const response = NextResponse.json({ user });
     response.cookies.set(
       SESSION_COOKIE,
-      signSessionToken(session.token),
+      signSessionToken(sessionToken),
       getSessionCookieOptions(),
     );
 
     return response;
   } catch (error) {
-    if (error instanceof StoreError) {
+    if (error instanceof AuthServiceError) {
       return NextResponse.json(
         { error: error.message },
         { status: error.statusCode },
@@ -38,8 +40,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: "Could not create your account." },
-      { status: 500 },
+      { error: "The authentication service is unavailable right now." },
+      { status: 503 },
     );
   }
 }

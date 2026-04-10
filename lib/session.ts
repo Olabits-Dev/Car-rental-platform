@@ -1,8 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getAuthUserBySessionToken } from "@/lib/backend-auth";
 import { getSessionSecret } from "@/lib/env";
-import { getUserFromSessionToken } from "@/lib/store";
 
 export const SESSION_COOKIE = "rideflex_session";
 
@@ -55,7 +55,12 @@ export async function getCurrentUser() {
   const sessionToken = getVerifiedSessionToken(
     (await cookies()).get(SESSION_COOKIE)?.value,
   );
-  return getUserFromSessionToken(sessionToken);
+
+  try {
+    return await getAuthUserBySessionToken(sessionToken);
+  } catch {
+    return null;
+  }
 }
 
 export async function requireUser(redirectTo = "/login?redirect=/dashboard") {

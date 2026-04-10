@@ -25,3 +25,30 @@ export function getSessionSecret() {
 
   return secret;
 }
+
+export function getBackendPort() {
+  const rawPort = process.env.BACKEND_PORT?.trim() || "4000";
+  const port = Number(rawPort);
+
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error("BACKEND_PORT must be a valid positive integer.");
+  }
+
+  return port;
+}
+
+export function getBackendApiUrl() {
+  const explicitUrl = process.env.BACKEND_API_URL?.trim();
+
+  if (explicitUrl) {
+    return explicitUrl.replace(/\/+$/, "");
+  }
+
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+
+  if (vercelUrl) {
+    return `https://${vercelUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "")}/api/backend`;
+  }
+
+  return `http://127.0.0.1:${getBackendPort()}/api`;
+}

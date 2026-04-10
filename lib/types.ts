@@ -10,6 +10,12 @@ export type Transmission = "Automatic" | "Manual";
 
 export type FuelType = "Electric" | "Hybrid" | "Petrol" | "Diesel";
 
+export type UserRole = "owner" | "agent" | "member";
+
+export type InquiryStatus = "new" | "in_progress" | "resolved";
+
+export type BookingStatus = "confirmed" | "completed" | "cancelled";
+
 export type CarGalleryImage = {
   src: string;
   alt: string;
@@ -65,11 +71,30 @@ export type Booking = {
   endDate: string;
   totalPrice: number;
   offerCode?: string;
+  status: BookingStatus;
+  assignedAgentId?: string | null;
   createdAt: string;
 };
 
+export type CarSummary = Pick<
+  Car,
+  | "id"
+  | "name"
+  | "brand"
+  | "model"
+  | "location"
+  | "type"
+  | "pricePerDay"
+  | "seats"
+  | "transmission"
+  | "fuel"
+  | "summary"
+>;
+
 export type BookingWithCar = Booking & {
-  car: Car;
+  car: CarSummary;
+  user?: PublicUser | null;
+  assignedAgent?: PublicUser | null;
 };
 
 export type CreateBookingInput = {
@@ -82,12 +107,15 @@ export type CreateBookingInput = {
 
 export type ContactInquiry = {
   id: string;
+  userId?: string | null;
   name: string;
   email: string;
   phone?: string;
   location?: string;
   vehicleType?: CarType;
   message: string;
+  status: InquiryStatus;
+  assignedAgentId?: string | null;
   createdAt: string;
 };
 
@@ -104,6 +132,7 @@ export type UserRecord = {
   id: string;
   name: string;
   email: string;
+  role: UserRole;
   passwordHash: string;
   createdAt: string;
 };
@@ -115,6 +144,63 @@ export type SessionRecord = {
   userId: string;
   createdAt: string;
 };
+
+export type InquiryWithContext = ContactInquiry & {
+  user?: PublicUser | null;
+  assignedAgent?: PublicUser | null;
+};
+
+export type MemberDashboardData = {
+  role: "member";
+  user: PublicUser;
+  stats: {
+    totalTrips: number;
+    upcomingTrips: number;
+    totalSpend: number;
+    activeRequests: number;
+  };
+  bookings: BookingWithCar[];
+  inquiries: InquiryWithContext[];
+};
+
+export type AgentDashboardData = {
+  role: "agent";
+  user: PublicUser;
+  stats: {
+    openInquiries: number;
+    inProgressInquiries: number;
+    todayPickups: number;
+    upcomingBookings: number;
+  };
+  inquiryQueue: InquiryWithContext[];
+  assignedBookings: BookingWithCar[];
+  recentMembers: PublicUser[];
+};
+
+export type OwnerDashboardData = {
+  role: "owner";
+  user: PublicUser;
+  stats: {
+    totalMembers: number;
+    totalAgents: number;
+    openInquiries: number;
+    monthlyRevenue: number;
+    upcomingBookings: number;
+  };
+  recentBookings: BookingWithCar[];
+  inquiryQueue: InquiryWithContext[];
+  teamMembers: PublicUser[];
+  locationPerformance: Array<{
+    location: string;
+    bookings: number;
+    revenue: number;
+  }>;
+};
+
+export type DashboardPayload =
+  | MemberDashboardData
+  | AgentDashboardData
+  | OwnerDashboardData;
 
 export type CarFilters = {
   query?: string;

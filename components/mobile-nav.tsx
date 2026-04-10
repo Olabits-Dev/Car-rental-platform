@@ -29,9 +29,22 @@ const menuMeta = {
   },
 } as const;
 
-export function MobileNav() {
+type MobileNavProps = {
+  accountDescription: string;
+  accountEyebrow: string;
+  accountHref: string;
+  accountLabel: string;
+};
+
+export function MobileNav({
+  accountDescription,
+  accountEyebrow,
+  accountHref,
+  accountLabel,
+}: MobileNavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const safePathname = pathname ?? "/";
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -90,12 +103,12 @@ export function MobileNav() {
         onClick={openMenu}
         aria-expanded={isMounted}
         aria-controls="mobile-site-menu"
-        className="inline-flex min-h-[3rem] items-center gap-2 rounded-[0.95rem] border border-[#d7d7d7] bg-white px-4 text-sm font-semibold text-[#1f1f1f] transition hover:border-[#d61032] hover:bg-[#fff6f8] hover:text-[#d61032]"
+        className="inline-flex min-h-[2.7rem] items-center gap-1.5 rounded-[0.9rem] border border-[#d7d7d7] bg-white px-3.5 text-[0.92rem] font-semibold text-[#1f1f1f] transition hover:border-[#d61032] hover:bg-[#fff6f8] hover:text-[#d61032]"
       >
         <span className="flex flex-col gap-[0.18rem]" aria-hidden="true">
-          <span className="h-[2px] w-4 rounded-full bg-current" />
-          <span className="h-[2px] w-4 rounded-full bg-current" />
-          <span className="h-[2px] w-4 rounded-full bg-current" />
+          <span className="h-[2px] w-3.5 rounded-full bg-current" />
+          <span className="h-[2px] w-3.5 rounded-full bg-current" />
+          <span className="h-[2px] w-3.5 rounded-full bg-current" />
         </span>
         Menu
       </button>
@@ -176,7 +189,11 @@ export function MobileNav() {
                     </p>
                     <nav className="mt-2 grid gap-1.5">
                       {navItems.map((item) => {
-                        const isActive = getIsActiveTab(item.id, pathname, searchParams);
+                        const isActive = getIsActiveTab(
+                          item.id,
+                          safePathname,
+                          searchParams,
+                        );
                         const meta = menuMeta[item.id];
 
                         return (
@@ -226,17 +243,17 @@ export function MobileNav() {
 
                   <div className="mt-3 rounded-[1.05rem] border border-[#ececec] bg-[#fafafa] p-3">
                     <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#8a8a8a]">
-                      Customer access
+                      {accountEyebrow}
                     </p>
                     <p className="mt-1 text-[0.7rem] leading-4 text-[#666666] max-[390px]:hidden">
-                      Sign in to manage trips and move through checkout faster.
+                      {accountDescription}
                     </p>
                     <Link
-                      href="/login"
+                      href={accountHref}
                       onClick={closeMenu}
                       className="button-secondary mt-2.5 min-h-[2.45rem] w-full text-[0.88rem]"
                     >
-                      Sign in or Join
+                      {accountLabel}
                     </Link>
                   </div>
                 </div>
