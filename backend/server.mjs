@@ -48,6 +48,15 @@ export function createBackendApp(options = {}) {
   app.disable("x-powered-by");
   app.use(express.json());
 
+  router.get("/", (_request, response) => {
+    response.json({
+      ok: true,
+      service: "rideflex-backend-service",
+      basePath: routePrefix,
+      health: `${routePrefix}/health`,
+    });
+  });
+
   router.get("/health", (_request, response) => {
     response.json({
       ok: true,
