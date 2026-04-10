@@ -1,6 +1,8 @@
 import "server-only";
 
 const MIN_SESSION_SECRET_LENGTH = 32;
+const DEPLOYED_BACKEND_API_URL =
+  "https://car-rental-platform-xlam.vercel.app/api/backend";
 
 function requireEnv(name: string) {
   const value = process.env[name]?.trim();
@@ -42,6 +44,10 @@ export function getBackendApiUrl() {
 
   if (explicitUrl) {
     return explicitUrl.replace(/\/+$/, "");
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return DEPLOYED_BACKEND_API_URL;
   }
 
   const vercelUrl = process.env.VERCEL_URL?.trim();
