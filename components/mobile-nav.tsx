@@ -103,7 +103,7 @@ export function MobileNav({
         onClick={openMenu}
         aria-expanded={isMounted}
         aria-controls="mobile-site-menu"
-        className="inline-flex min-h-[2.7rem] items-center gap-1.5 rounded-[0.9rem] border border-[#d7d7d7] bg-white px-3.5 text-[0.92rem] font-semibold text-[#1f1f1f] transition hover:border-[#d61032] hover:bg-[#fff6f8] hover:text-[#d61032]"
+        className="inline-flex min-h-[2.7rem] items-center gap-1.5 rounded-[0.9rem] border border-[var(--panel-border-strong)] bg-[var(--panel-solid)] px-3.5 text-[0.92rem] font-semibold text-[var(--secondary-button-text)] transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)]"
       >
         <span className="flex flex-col gap-[0.18rem]" aria-hidden="true">
           <span className="h-[2px] w-3.5 rounded-full bg-current" />
@@ -128,49 +128,49 @@ export function MobileNav({
                 id="mobile-site-menu"
                 role="dialog"
                 aria-modal="true"
-                className={`fixed inset-y-0 right-0 z-[60] w-[min(65vw,24rem)] overflow-hidden border border-[#e7e7e7] bg-white shadow-[0_24px_48px_rgba(15,23,42,0.16)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                className={`fixed inset-y-0 right-0 z-[60] w-[min(65vw,24rem)] overflow-hidden border border-[var(--panel-border)] bg-[var(--panel-solid)] shadow-[0_24px_48px_rgba(15,23,42,0.16)] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   isVisible ? "translate-x-0" : "translate-x-full"
                 } rounded-l-[1.75rem]`}
                 onClick={(event) => event.stopPropagation()}
               >
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(214,16,50,0.04),rgba(255,255,255,0)_18%,rgba(255,255,255,1)_38%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--accent)_8%,transparent),rgba(255,255,255,0)_18%,var(--panel-solid)_38%)]" />
                 <div className="relative flex h-full flex-col overflow-y-auto p-3 pt-3.5">
-                  <div className="relative rounded-[1.25rem] border border-[#ececec] bg-white/92 p-3.5 pr-14 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
+                  <div className="relative rounded-[1.25rem] border border-[var(--panel-border)] bg-[color-mix(in_srgb,var(--panel-solid)_92%,transparent)] p-3.5 pr-14 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
                     <div className="min-w-0">
-                      <p className="text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-[#d61032]">
+                      <p className="text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                         RideFlex Rentals
                       </p>
-                      <h2 className="mt-2 text-[1rem] font-semibold leading-[1.08] text-[#111111]">
+                      <h2 className="mt-2 text-[1rem] font-semibold leading-[1.08] text-[var(--heading)]">
                         Browse the fleet faster.
                       </h2>
-                      <p className="mt-1.5 text-[0.72rem] leading-4 text-[#666666] max-[390px]:hidden">
+                      <p className="mt-1.5 text-[0.72rem] leading-4 text-[var(--muted)] max-[390px]:hidden">
                         Main routes and booking actions are grouped here for quick access.
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={closeMenu}
-                      className="absolute right-3.5 top-3.5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dddddd] bg-white text-lg text-[#111111] transition hover:border-[#d61032] hover:text-[#d61032]"
+                      className="absolute right-3.5 top-3.5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--panel-border-strong)] bg-[var(--panel-solid)] text-lg text-[var(--heading)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
                       aria-label="Close mobile navigation"
                     >
                       ×
                     </button>
                   </div>
 
-                  <div className="mt-3 rounded-[1.1rem] border border-[#ececec] bg-[linear-gradient(180deg,#fff8f9_0%,#ffffff_100%)] p-3 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+                  <div className="mt-3 rounded-[1.1rem] border border-[var(--panel-border)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--accent)_6%,var(--panel-solid))_0%,var(--panel-solid)_100%)] p-3 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#d61032]">
+                        <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
                           Quick start
                         </p>
-                        <h3 className="mt-1 text-[0.92rem] font-semibold leading-tight text-[#111111]">
+                        <h3 className="mt-1 text-[0.92rem] font-semibold leading-tight text-[var(--heading)]">
                           Open the live fleet
                         </h3>
-                        <p className="mt-1 text-[0.72rem] leading-4 text-[#666666] max-[390px]:hidden">
+                        <p className="mt-1 text-[0.72rem] leading-4 text-[var(--muted)] max-[390px]:hidden">
                           Start with the live fleet, then refine by location, type, or pricing.
                         </p>
                       </div>
-                      <span className="rounded-full bg-white px-2 py-1 text-[0.56rem] font-semibold uppercase tracking-[0.14em] text-[#d61032] shadow-[0_6px_16px_rgba(214,16,50,0.08)]">
+                      <span className="rounded-full bg-[var(--panel-solid)] px-2 py-1 text-[0.56rem] font-semibold uppercase tracking-[0.14em] text-[var(--accent)] shadow-[0_6px_16px_rgba(214,16,50,0.08)]">
                         Fleet
                       </span>
                     </div>
@@ -184,7 +184,7 @@ export function MobileNav({
                   </div>
 
                   <div className="mt-3">
-                    <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#818181]">
+                    <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[var(--subtle)]">
                       Explore RideFlex
                     </p>
                     <nav className="mt-2 grid gap-1.5">
@@ -204,31 +204,31 @@ export function MobileNav({
                             aria-current={isActive ? "page" : undefined}
                             className={`rounded-[0.95rem] border px-3 py-2.5 transition ${
                               isActive
-                                ? "border-[#ffd4dc] bg-[#fff4f6] shadow-[0_10px_24px_rgba(214,16,50,0.08)]"
-                                : "border-[#ececec] bg-white hover:border-[#f0c5ce] hover:bg-[#fff8f9]"
+                                ? "border-[color-mix(in_srgb,var(--accent)_30%,var(--panel-border))] bg-[var(--accent-soft)] shadow-[0_10px_24px_rgba(214,16,50,0.08)]"
+                                : "border-[var(--panel-border)] bg-[var(--panel-solid)] hover:border-[color-mix(in_srgb,var(--accent)_30%,var(--panel-border))] hover:bg-[color-mix(in_srgb,var(--accent)_4%,var(--panel-solid))]"
                             }`}
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <p className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[#8a8a8a]">
+                                <p className="text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-[var(--subtle)]">
                                   {meta.eyebrow}
                                 </p>
                                 <p
                                   className={`mt-0.5 text-[0.9rem] font-semibold leading-tight ${
-                                    isActive ? "text-[#d61032]" : "text-[#171717]"
+                                    isActive ? "text-[var(--accent)]" : "text-[var(--heading)]"
                                   }`}
                                 >
                                   {item.label}
                                 </p>
-                                <p className="mt-0.5 text-[0.68rem] leading-4 text-[#666666] max-[390px]:hidden">
+                                <p className="mt-0.5 text-[0.68rem] leading-4 text-[var(--muted)] max-[390px]:hidden">
                                   {meta.description}
                                 </p>
                               </div>
                               <span
                                 className={`inline-flex h-[1.75rem] w-[1.75rem] shrink-0 items-center justify-center rounded-full border text-sm ${
                                   isActive
-                                    ? "border-[#ffd4dc] bg-white text-[#d61032]"
-                                    : "border-[#e7e7e7] bg-[#fafafa] text-[#686868]"
+                                    ? "border-[color-mix(in_srgb,var(--accent)_30%,var(--panel-border))] bg-[var(--panel-solid)] text-[var(--accent)]"
+                                    : "border-[var(--panel-border)] bg-[var(--panel-soft)] text-[var(--muted)]"
                                 }`}
                                 aria-hidden="true"
                               >
@@ -241,11 +241,11 @@ export function MobileNav({
                     </nav>
                   </div>
 
-                  <div className="mt-3 rounded-[1.05rem] border border-[#ececec] bg-[#fafafa] p-3">
-                    <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#8a8a8a]">
+                  <div className="mt-3 rounded-[1.05rem] border border-[var(--panel-border)] bg-[var(--panel-soft)] p-3">
+                    <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[var(--subtle)]">
                       {accountEyebrow}
                     </p>
-                    <p className="mt-1 text-[0.7rem] leading-4 text-[#666666] max-[390px]:hidden">
+                    <p className="mt-1 text-[0.7rem] leading-4 text-[var(--muted)] max-[390px]:hidden">
                       {accountDescription}
                     </p>
                     <Link

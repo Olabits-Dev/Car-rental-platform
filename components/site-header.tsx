@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HeaderNav } from "@/components/header-nav";
 import { MobileNav } from "@/components/mobile-nav";
 import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getCurrentUser } from "@/lib/session";
 
 function DesktopNavFallback() {
@@ -11,7 +12,7 @@ function DesktopNavFallback() {
       {["Book", "Manage Trips", "Premium Rentals", "Deals", "Contact"].map((label) => (
         <span
           key={label}
-          className="rounded-[0.9rem] px-4 py-2 text-sm font-semibold text-[#212121]"
+          className="rounded-[0.9rem] px-4 py-2 text-sm font-semibold text-[var(--heading)]"
         >
           {label}
         </span>
@@ -27,7 +28,7 @@ function MobileNavFallback() {
         type="button"
         aria-expanded={false}
         aria-controls="mobile-site-menu"
-        className="inline-flex min-h-[2.7rem] items-center gap-1.5 rounded-[0.9rem] border border-[#d7d7d7] bg-white px-3.5 text-[0.92rem] font-semibold text-[#1f1f1f] lg:hidden"
+        className="inline-flex min-h-[2.7rem] items-center gap-1.5 rounded-[0.9rem] border border-[var(--panel-border-strong)] bg-[var(--panel-solid)] px-3.5 text-[0.92rem] font-semibold text-[var(--secondary-button-text)] lg:hidden"
       >
         <span className="flex flex-col gap-[0.18rem]" aria-hidden="true">
           <span className="h-[2px] w-3.5 rounded-full bg-current" />
@@ -81,7 +82,7 @@ export async function SiteHeader() {
   const accountCta = getAccountCta(user?.role);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#dedede] bg-[rgba(255,255,255,0.96)] backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-[var(--panel-border)] bg-[var(--header-bg)] backdrop-blur-xl transition-colors">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <div className="min-w-0 flex-1 lg:flex-none">
           <Logo />
@@ -92,9 +93,12 @@ export async function SiteHeader() {
           </Suspense>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
+          <div>
+            <ThemeToggle compact />
+          </div>
           <Link
             href={accountCta.href}
-            className="hidden rounded-[0.85rem] border border-[#d7d7d7] px-4 py-2 text-sm font-semibold text-[#1f1f1f] transition hover:border-[#d61032] hover:bg-[#fff6f8] hover:text-[#d61032] lg:inline-flex"
+            className="hidden rounded-[0.85rem] border border-[var(--panel-border-strong)] px-4 py-2 text-sm font-semibold text-[var(--secondary-button-text)] transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent)] lg:inline-flex"
           >
             {accountCta.label}
           </Link>

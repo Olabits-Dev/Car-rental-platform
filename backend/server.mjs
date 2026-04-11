@@ -12,7 +12,10 @@ import {
   getDashboardForSession,
   getUserFromSessionToken,
   registerUser,
+  requestPasswordReset,
+  resetPasswordWithToken,
   removeSession,
+  validatePasswordResetToken,
   updateInquiryStatus,
 } from "./store.mjs";
 
@@ -117,6 +120,62 @@ export function createBackendApp(options = {}) {
       });
     } catch (error) {
       handleError(error, response, "Could not create your account.");
+    }
+  });
+
+  router.post("/auth/forgot-password", async (request, response) => {
+    try {
+      const result = await requestPasswordReset({
+        email: request.body?.email ?? "",
+      });
+
+      response.json(result);
+    } catch (error) {
+      handleError(
+        error,
+        response,
+        "Could not start the password reset flow right now.",
+      );
+    }
+  });
+
+  router.get("/auth/reset-password/validate", async (request, response) => {
+    try {
+      const result = await validatePasswordResetToken(
+        String(request.query?.token ?? ""),
+      );
+
+      if (!result) {
+        response
+          .status(400)
+          .json({ error: "This reset link is invalid or has expired." });
+        return;
+      }
+
+      response.json(result);
+    } catch (error) {
+      handleError(
+        error,
+        response,
+        "Could not validate that reset link right now.",
+      );
+    }
+  });
+
+  router.post("/auth/reset-password", async (request, response) => {
+    try {
+      const result = await resetPasswordWithToken({
+        token: request.body?.token ?? "",
+        password: request.body?.password ?? "",
+      });
+
+      response.json(result);
+    } catch (error) {
+      handleError(
+        error,
+        response,
+        "Could not update the password right now.",
+      );
     }
   });
 

@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 const KEY_LENGTH = 64;
 
@@ -46,6 +46,14 @@ export function calculateBookingPrice(pricePerDay, startDate, endDate) {
   const billableDays = Math.max(1, Math.ceil(hours / 24));
 
   return pricePerDay * billableDays;
+}
+
+export function createSecretToken(byteLength = 32) {
+  return randomBytes(byteLength).toString("hex");
+}
+
+export function hashSecretToken(token) {
+  return createHash("sha256").update(token.trim()).digest("hex");
 }
 
 export function addDays(date, days) {

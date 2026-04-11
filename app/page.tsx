@@ -206,13 +206,13 @@ export default function Home() {
           <div className="mt-5 lg:mt-6">
             <Form
               action="/cars"
-              className="grid gap-2 rounded-[1.9rem] border border-white/35 bg-white/96 p-2 shadow-[0_28px_48px_rgba(7,13,21,0.24)] backdrop-blur-md lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]"
+              className="grid gap-2 rounded-[1.9rem] border border-[var(--panel-border)] bg-[var(--panel)]/95 p-2 shadow-[0_28px_48px_rgba(7,13,21,0.24)] backdrop-blur-md lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]"
             >
-              <label className="flex min-w-0 flex-col justify-center gap-1 rounded-[1.2rem] px-4 py-3 lg:rounded-none lg:border-r lg:border-[#ececec] lg:px-5 lg:py-2.5">
-                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#6e6e6e]">
+              <label className="flex min-w-0 flex-col justify-center gap-1 rounded-[1.2rem] border border-[var(--panel-border)] bg-[var(--panel-solid)] px-4 py-3 lg:rounded-none lg:border-r lg:px-5 lg:py-2.5">
+                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
                   Pick-up location
                 </span>
-                <select name="location" className="field-input hero-field-input text-[1rem] font-semibold text-[#1c1c1c]">
+                <select name="location" className="field-input hero-field-input text-[1rem] font-semibold text-[var(--heading)]">
                   <option value="">All destinations</option>
                   {locations.map((location) => (
                     <option key={location} value={location}>
@@ -222,11 +222,11 @@ export default function Home() {
                 </select>
               </label>
 
-              <label className="flex min-w-0 flex-col justify-center gap-1 rounded-[1.2rem] px-4 py-3 lg:rounded-none lg:border-r lg:border-[#ececec] lg:px-5 lg:py-2.5">
-                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#6e6e6e]">
+              <label className="flex min-w-0 flex-col justify-center gap-1 rounded-[1.2rem] border border-[var(--panel-border)] bg-[var(--panel-solid)] px-4 py-3 lg:rounded-none lg:border-r lg:px-5 lg:py-2.5">
+                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
                   Vehicle type
                 </span>
-                <select name="type" className="field-input hero-field-input text-[1rem] font-semibold text-[#1c1c1c]">
+                <select name="type" className="field-input hero-field-input text-[1rem] font-semibold text-[var(--heading)]">
                   <option value="">All categories</option>
                   {carTypes.map((type) => (
                     <option key={type} value={type}>
@@ -236,19 +236,19 @@ export default function Home() {
                 </select>
               </label>
 
-              <label className="flex min-w-0 flex-col justify-center gap-1 rounded-[1.2rem] px-4 py-3 lg:rounded-none lg:border-r lg:border-[#ececec] lg:px-5 lg:py-2.5">
-                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#6e6e6e]">
+              <label className="flex min-w-0 flex-col justify-center gap-1 rounded-[1.2rem] border border-[var(--panel-border)] bg-[var(--panel-solid)] px-4 py-3 lg:rounded-none lg:border-r lg:px-5 lg:py-2.5">
+                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
                   Keyword
                 </span>
                 <input
                   name="query"
                   placeholder="Toyota, SUV, electric..."
-                  className="field-input hero-field-input text-[1rem] font-semibold text-[#1c1c1c]"
+                  className="field-input hero-field-input text-[1rem] font-semibold text-[var(--heading)]"
                 />
               </label>
 
-              <label className="flex min-w-0 flex-col justify-center gap-1 rounded-[1.2rem] px-4 py-3 lg:rounded-none lg:border-r lg:border-[#ececec] lg:px-5 lg:py-2.5">
-                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[#6e6e6e]">
+              <label className="flex min-w-0 flex-col justify-center gap-1 rounded-[1.2rem] border border-[var(--panel-border)] bg-[var(--panel-solid)] px-4 py-3 lg:rounded-none lg:border-r lg:px-5 lg:py-2.5">
+                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
                   Max price/day
                 </span>
                 <input
@@ -257,13 +257,13 @@ export default function Home() {
                   step={5000}
                   name="maxPrice"
                   placeholder="Any budget"
-                  className="field-input hero-field-input text-[1rem] font-semibold text-[#1c1c1c]"
+                  className="field-input hero-field-input text-[1rem] font-semibold text-[var(--heading)]"
                 />
               </label>
 
               <button
                 type="submit"
-                className="inline-flex min-h-[4rem] items-center justify-center rounded-[1.35rem] bg-[#d61032] px-6 text-[0.98rem] font-semibold text-white shadow-[0_16px_28px_rgba(214,16,50,0.24)] transition hover:translate-y-[-1px] hover:bg-[#b30828] lg:min-h-[3.5rem]"
+                className="inline-flex min-h-[4rem] items-center justify-center rounded-[1.35rem] bg-[var(--accent)] px-6 text-[0.98rem] font-semibold text-white shadow-[0_16px_28px_rgba(214,16,50,0.24)] transition hover:translate-y-[-1px] hover:bg-[var(--accent-strong)] lg:min-h-[3.5rem]"
               >
                 Search
               </button>
@@ -292,19 +292,19 @@ export default function Home() {
       <section className="mt-8 grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:items-stretch">
         <div className="glass-panel flex h-full flex-col p-6 md:p-7 lg:p-6">
           <p className="section-kicker">Why customers choose us</p>
-          <h2 className="home-title mt-3 max-w-[15.5ch] text-[clamp(1.85rem,2.45vw,2.55rem)] text-[#121212]">
+          <h2 className="home-title mt-3 max-w-[15.5ch] text-[clamp(1.85rem,2.45vw,2.55rem)] text-[var(--heading)]">
             We keep booking simple so your trip feels easier from the start.
           </h2>
           <div className="mt-5 grid gap-2.5 lg:grid-cols-2">
             {trustPoints.map((point) => (
               <div
                 key={point.title}
-                className="rounded-[1.15rem] border border-[#e2e2e2] bg-[#fafafa] px-3.5 py-3.5 lg:last:col-span-2"
+                className="rounded-[1.15rem] border border-[var(--panel-border)] bg-[var(--panel-soft)] px-3.5 py-3.5 lg:last:col-span-2"
               >
-                <h3 className="text-[0.96rem] font-semibold leading-snug text-[#111111]">
+                <h3 className="text-[0.96rem] font-semibold leading-snug text-[var(--heading)]">
                   {point.title}
                 </h3>
-                <p className="mt-1.5 text-[0.84rem] leading-[1.55] text-[#616161]">
+                <p className="mt-1.5 text-[0.84rem] leading-[1.55] text-[var(--muted)]">
                   {point.copy}
                 </p>
               </div>
@@ -334,7 +334,7 @@ export default function Home() {
         <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div className="max-w-3xl">
             <p className="section-kicker">Cars customers love</p>
-            <h2 className="home-title mt-3 text-[clamp(2.1rem,4vw,4rem)] text-[#121212]">
+            <h2 className="home-title mt-3 text-[clamp(2.1rem,4vw,4rem)] text-[var(--heading)]">
               Start with a few favorites for daily drives, airport pickups, business travel, and family plans.
             </h2>
           </div>
@@ -400,7 +400,7 @@ export default function Home() {
           </div>
           <div className="p-7 md:p-8">
             <p className="section-kicker">Where we serve</p>
-            <h2 className="home-title mt-3 text-3xl text-[#111111] md:text-4xl">
+            <h2 className="home-title mt-3 text-3xl text-[var(--heading)] md:text-4xl">
               Pick up in the cities you know and travel at your own pace.
             </h2>
             <div className="mt-6 flex flex-wrap gap-3">

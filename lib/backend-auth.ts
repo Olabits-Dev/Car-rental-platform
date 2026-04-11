@@ -20,6 +20,15 @@ type RegisterInput = {
   password: string;
 };
 
+type ForgotPasswordInput = {
+  email: string;
+};
+
+type ResetPasswordInput = {
+  token: string;
+  password: string;
+};
+
 type CreateBookingInput = {
   carId: string;
   startDate: string;
@@ -43,6 +52,16 @@ type AuthSuccessPayload = {
 
 type AuthUserPayload = {
   user: PublicUser;
+};
+
+type ForgotPasswordPayload = {
+  ok: true;
+  previewUrl?: string;
+};
+
+type ResetPasswordValidationPayload = {
+  email: string;
+  expiresAt: string;
 };
 
 type ErrorPayload = {
@@ -125,6 +144,28 @@ export async function loginWithAuthService(input: LoginInput) {
 
 export async function registerWithAuthService(input: RegisterInput) {
   return backendRequest<AuthSuccessPayload>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function requestPasswordResetWithAuthService(
+  input: ForgotPasswordInput,
+) {
+  return backendRequest<ForgotPasswordPayload>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function validatePasswordResetTokenWithAuthService(token: string) {
+  return backendRequest<ResetPasswordValidationPayload>(
+    `/auth/reset-password/validate?token=${encodeURIComponent(token)}`,
+  );
+}
+
+export async function resetPasswordWithAuthService(input: ResetPasswordInput) {
+  return backendRequest<{ ok: true }>("/auth/reset-password", {
     method: "POST",
     body: JSON.stringify(input),
   });

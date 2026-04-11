@@ -198,12 +198,25 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
         </label>
 
         {error ? (
-          <p
-            aria-live="polite"
-            className="rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
-          >
-            {error}
-          </p>
+          <>
+            <p
+              aria-live="polite"
+              className="rounded-[1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+            >
+              {error}
+            </p>
+            {isLogin ? (
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                Forgot your password?{' '}
+                <Link
+                  href="/forgot-password"
+                  className="font-semibold text-[var(--accent)] hover:text-[var(--accent-strong)]"
+                >
+                  Reset it now.
+                </Link>
+              </p>
+            ) : null}
+          </>
         ) : null}
 
         {isLogin ? (

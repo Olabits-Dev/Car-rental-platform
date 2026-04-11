@@ -2,15 +2,20 @@ import { randomUUID } from "node:crypto";
 import { getCarSummary } from "./car-catalog.mjs";
 import { getSql, ensureSchema } from "./db.mjs";
 import { getDealOfferByCode } from "./deals.mjs";
+import { getAppBaseUrl } from "./env.mjs";
+import { sendPasswordResetEmail } from "./mailer.mjs";
 import {
   addDays,
   addHours,
   calculateBookingPrice,
+  createSecretToken,
+  hashSecretToken,
   hashPassword,
   verifyPassword,
 } from "./utils.mjs";
 
 const VALID_INQUIRY_STATUSES = new Set(["new", "in_progress", "resolved"]);
+const PASSWORD_RESET_WINDOW_MINUTES = 45;
 
 export class BackendStoreError extends Error {
   constructor(message, statusCode) {
@@ -26,6 +31,26 @@ function normalizeEmail(email) {
 
 function toIsoString(value) {
   return new Date(value).toISOString();
+}
+
+function maskEmail(email) {
+  const [localPart, domain] = email.split("@");
+
+  if (!localPart || !domain) {
+    return email;
+  }
+
+  if (localPart.length <= 2) {
+    const maskedLocal = `${localPart[0] ?? "*"}*`;
+    const maskedDomain = `${domain[0]}${"*".repeat(Math.max(1, domain.length - 2))}`;
+    return `${maskedLocal}@${maskedDomain}`;
+  }
+
+  const maskedLocal = `${localPart.slice(0, 2)}${"*".repeat(
+    Math.max(1, localPart.length - 2),
+  )}`;
+  const maskedDomain = `${domain[0]}${"*".repeat(Math.max(1, domain.length - 2))}`;
+  return `${maskedLocal}@${maskedDomain}`;
 }
 
 function toPublicUser(row) {
@@ -129,6 +154,49 @@ async function enrichInquiries(sql, rows) {
       row.assigned_agent_id ? (userMap.get(row.assigned_agent_id) ?? null) : null,
     ),
   );
+}
+
+async function cleanupExpiredResetTokens(sql) {
+  await sql`
+    DELETE FROM rideflex_password_reset_tokens
+    WHERE expires_at < NOW() OR used_at IS NOT NULL
+  `;
+}
+
+async function getUserRowByEmail(sql, email) {
+  const rows = await sql`
+    SELECT id, name, email, role, password_hash, created_at
+    FROM rideflex_users
+    WHERE email = ${email}
+    LIMIT 1
+  `;
+
+  return rows[0] ?? null;
+}
+
+async function getActivePasswordResetRecord(sql, token) {
+  if (!token?.trim()) {
+    return null;
+  }
+
+  await cleanupExpiredResetTokens(sql);
+
+  const rows = await sql`
+    SELECT
+      reset_tokens.id,
+      reset_tokens.user_id,
+      reset_tokens.expires_at,
+      users.email,
+      users.name
+    FROM rideflex_password_reset_tokens reset_tokens
+    INNER JOIN rideflex_users users ON users.id = reset_tokens.user_id
+    WHERE reset_tokens.token_hash = ${hashSecretToken(token)}
+      AND reset_tokens.used_at IS NULL
+      AND reset_tokens.expires_at >= NOW()
+    LIMIT 1
+  `;
+
+  return rows[0] ?? null;
 }
 
 function readOwnerSeed() {
@@ -438,14 +506,7 @@ export async function authenticateUser(input) {
   const password = input.password?.trim() ?? "";
 
   const sql = getSql();
-  const rows = await sql`
-    SELECT id, name, email, role, password_hash, created_at
-    FROM rideflex_users
-    WHERE email = ${email}
-    LIMIT 1
-  `;
-
-  const user = rows[0];
+  const user = await getUserRowByEmail(sql, email);
 
   if (!user || !verifyPassword(password, user.password_hash)) {
     return null;
@@ -503,6 +564,135 @@ export async function registerUser(input) {
 
     throw error;
   }
+}
+
+export async function requestPasswordReset(input) {
+  await ensureBackendReady();
+
+  const email = normalizeEmail(input.email ?? "");
+
+  if (!email.includes("@")) {
+    throw new BackendStoreError("Please enter a valid email address.", 400);
+  }
+
+  const sql = getSql();
+  const user = await getUserRowByEmail(sql, email);
+
+  if (!user) {
+    return { ok: true };
+  }
+
+  await cleanupExpiredResetTokens(sql);
+  await sql`
+    DELETE FROM rideflex_password_reset_tokens
+    WHERE user_id = ${user.id}
+  `;
+
+  const token = createSecretToken();
+  const expiresAt = new Date(
+    Date.now() + PASSWORD_RESET_WINDOW_MINUTES * 60 * 1000,
+  );
+
+  await sql`
+    INSERT INTO rideflex_password_reset_tokens (
+      id,
+      user_id,
+      token_hash,
+      expires_at,
+      created_at
+    )
+    VALUES (
+      ${randomUUID()},
+      ${user.id},
+      ${hashSecretToken(token)},
+      ${expiresAt.toISOString()},
+      NOW()
+    )
+  `;
+
+  const resetUrl = `${getAppBaseUrl()}/reset-password/${encodeURIComponent(token)}`;
+  const delivery = await sendPasswordResetEmail({
+    email: user.email,
+    name: user.name,
+    resetUrl,
+    expiresInMinutes: PASSWORD_RESET_WINDOW_MINUTES,
+  });
+
+  return {
+    ok: true,
+    previewUrl: delivery.previewUrl,
+  };
+}
+
+export async function validatePasswordResetToken(token) {
+  await ensureBackendReady();
+
+  const sql = getSql();
+  const record = await getActivePasswordResetRecord(sql, token);
+
+  if (!record) {
+    return null;
+  }
+
+  return {
+    email: maskEmail(record.email),
+    expiresAt: toIsoString(record.expires_at),
+  };
+}
+
+export async function resetPasswordWithToken(input) {
+  await ensureBackendReady();
+
+  const token = input.token?.trim() ?? "";
+  const password = input.password?.trim() ?? "";
+
+  if (!token) {
+    throw new BackendStoreError("Reset link is missing or invalid.", 400);
+  }
+
+  if (password.length < 8) {
+    throw new BackendStoreError(
+      "Password must be at least 8 characters long.",
+      400,
+    );
+  }
+
+  const sql = getSql();
+  const record = await getActivePasswordResetRecord(sql, token);
+
+  if (!record) {
+    throw new BackendStoreError(
+      "This reset link is invalid or has expired.",
+      400,
+    );
+  }
+
+  await sql.begin(async (transaction) => {
+    await transaction`
+      UPDATE rideflex_users
+      SET password_hash = ${hashPassword(password)}
+      WHERE id = ${record.user_id}
+    `;
+
+    await transaction`
+      UPDATE rideflex_password_reset_tokens
+      SET used_at = NOW()
+      WHERE id = ${record.id}
+    `;
+
+    await transaction`
+      DELETE FROM rideflex_password_reset_tokens
+      WHERE user_id = ${record.user_id}
+        AND id <> ${record.id}
+    `;
+
+    await transaction`
+      DELETE FROM rideflex_sessions
+      WHERE user_id = ${record.user_id}
+    `;
+  });
+
+  return { ok: true };
 }
 
 export async function createSession(userId) {

@@ -88,6 +88,15 @@ async function createSchema() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS rideflex_password_reset_tokens (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES rideflex_users(id) ON DELETE CASCADE,
+        token_hash TEXT NOT NULL UNIQUE,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       CREATE INDEX IF NOT EXISTS rideflex_sessions_user_id_idx
         ON rideflex_sessions (user_id);
 
@@ -102,6 +111,12 @@ async function createSchema() {
 
       CREATE INDEX IF NOT EXISTS rideflex_contact_inquiries_status_idx
         ON rideflex_contact_inquiries (status, created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS rideflex_password_reset_tokens_user_id_idx
+        ON rideflex_password_reset_tokens (user_id, created_at DESC);
+
+      CREATE INDEX IF NOT EXISTS rideflex_password_reset_tokens_expires_at_idx
+        ON rideflex_password_reset_tokens (expires_at);
     `);
   } finally {
     await sql.end({ timeout: 5 }).catch(() => undefined);
