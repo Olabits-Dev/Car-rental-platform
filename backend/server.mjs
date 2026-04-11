@@ -41,12 +41,28 @@ function handleError(error, response, fallbackMessage) {
 }
 
 export function createBackendApp(options = {}) {
-  const { routePrefix = "/api" } = options;
+  const {
+    routePrefix = "/api",
+    additionalRoutePrefixes = [],
+  } = options;
   const app = express();
   const router = express.Router();
 
   app.disable("x-powered-by");
   app.use(express.json());
+
+  const mountedPrefixes = Array.from(
+    new Set([routePrefix, ...additionalRoutePrefixes].filter(Boolean)),
+  );
+
+  app.get("/", (_request, response) => {
+    response.json({
+      ok: true,
+      service: "rideflex-backend-service",
+      apiBasePaths: mountedPrefixes,
+      health: mountedPrefixes.map((prefix) => `${prefix}/health`),
+    });
+  });
 
   router.get("/", (_request, response) => {
     response.json({
@@ -223,7 +239,9 @@ export function createBackendApp(options = {}) {
     }
   });
 
-  app.use(routePrefix, router);
+  for (const prefix of mountedPrefixes) {
+    app.use(prefix, router);
+  }
 
   app.use((_request, response) => {
     response.status(404).json({ error: "Not found." });
@@ -233,6 +251,12 @@ export function createBackendApp(options = {}) {
 }
 
 export const createAuthApp = createBackendApp;
+const defaultBackendApp = createBackendApp({
+  routePrefix: "/api",
+  additionalRoutePrefixes: ["/api/backend"],
+});
+
+export default defaultBackendApp;
 
 const isMainModule =
   Boolean(process.argv[1]) &&
@@ -243,8 +267,7 @@ if (isMainModule) {
 
   ensureBackendReady()
     .then(() => {
-      const app = createBackendApp({ routePrefix: "/api" });
-      app.listen(port, () => {
+      defaultBackendApp.listen(port, () => {
         console.log(
           `RideFlex backend service listening on http://127.0.0.1:${port}/api`,
         );
