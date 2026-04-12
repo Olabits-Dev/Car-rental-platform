@@ -10,6 +10,11 @@ function readDatabaseUrl() {
     );
   }
 
+  // Warn if using pooler in many connections scenario (but allow it)
+  if (url.includes("-pooler") && url.includes("?") && !url.includes("sslmode=disable")) {
+    console.log("[Database] Using pooled connection to Neon with SSL");
+  }
+
   return url;
 }
 
@@ -22,11 +27,18 @@ function readBootstrapDatabaseUrl() {
 }
 
 function createClient(url, max = 5) {
+  // For serverless environments, we need longer timeouts and connection retries
+  const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+  const connectTimeout = isServerless ? 30 : 15;
+  const idleTimeout = isServerless ? 30 : 20;
+
   return postgres(url, {
     max,
     prepare: false,
-    idle_timeout: 20,
-    connect_timeout: 15,
+    idle_timeout: idleTimeout,
+    connect_timeout: connectTimeout,
+    max_lifetime: 60 * 2, // 2 minutes for serverless
+    max_pipeline: 60,
     onnotice: () => undefined,
   });
 }
@@ -57,9 +69,10 @@ async function createSchema() {
   try {
     sql = createClient(readBootstrapDatabaseUrl(), 1);
   } catch (error) {
-    console.error("[Database] Failed to create bootstrap client:", error.message);
+    const message = error?.message || String(error);
+    console.error("[Database] Failed to create bootstrap client:", message);
     throw new Error(
-      "Could not connect to database. Verify DATABASE_URL is configured correctly.",
+      `Database client initialization failed: ${message}. Check DATABASE_URL and network connectivity.`,
     );
   }
 
@@ -144,13 +157,23 @@ async function createSchema() {
   }
 }
 
+let __schemaInitPromise = null;
+let __schemaInitError = null;
+
 export async function ensureSchema() {
-  if (!globalThis.__rideflexSchemaPromise) {
-    globalThis.__rideflexSchemaPromise = createSchema().catch((error) => {
-      globalThis.__rideflexSchemaPromise = undefined;
-      throw error;
+  // If we already failed, throw the cached error
+  if (__schemaInitError) {
+    throw __schemaInitError;
+  }
+
+  // If schema is already initializing or initialized, return the promise
+  if (!__schemaInitPromise) {
+    __schemaInitPromise = createSchema().catch((error) => {
+      __schemaInitError = error;
+      console.error("[Database] Schema initialization failed:", error?.message || String(error));
+      return null; // Return null on error so we don't retry repeatedly
     });
   }
 
-  return globalThis.__rideflexSchemaPromise;
+  return __schemaInitPromise;
 }
