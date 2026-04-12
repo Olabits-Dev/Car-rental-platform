@@ -310,12 +310,20 @@ export function createBackendApp(options = {}) {
 }
 
 export const createAuthApp = createBackendApp;
-const defaultBackendApp = createBackendApp({
-  routePrefix: "/api",
-  additionalRoutePrefixes: ["/api/backend"],
-});
 
-export default defaultBackendApp;
+let _defaultBackendApp = null;
+
+export function getBackendService() {
+  if (!_defaultBackendApp) {
+    _defaultBackendApp = createBackendApp({
+      routePrefix: "/api",
+      additionalRoutePrefixes: ["/api/backend"],
+    });
+  }
+  return _defaultBackendApp;
+}
+
+export default getBackendService;
 
 const isMainModule =
   Boolean(process.argv[1]) &&
@@ -326,7 +334,7 @@ if (isMainModule) {
 
   ensureBackendReady()
     .then(() => {
-      defaultBackendApp.listen(port, () => {
+      getBackendService().listen(port, () => {
         console.log(
           `RideFlex backend service listening on http://127.0.0.1:${port}/api`,
         );
