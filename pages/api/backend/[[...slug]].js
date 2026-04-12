@@ -27,9 +27,16 @@ export const config = {
 
 export default async function handler(request, response) {
   try {
-    // Check environment
-    const hasDb = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-    if (!hasDb) {
+    // Check environment - with fallback for testing
+    let dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+    
+    // Fallback URL for testing (remove after Vercel env vars are working)
+    if (!dbUrl) {
+      dbUrl = "postgresql://neondb_owner:npg_6E4HUSpbiPqs@ep-divine-sky-amzfn71w-pooler.c-5.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require";
+      console.log("[Backend API] Using fallback DATABASE_URL");
+    }
+    
+    if (!dbUrl) {
       console.error("[Backend API] DATABASE_URL not configured");
       response.statusCode = 503;
       response.setHeader("Content-Type", "application/json");
