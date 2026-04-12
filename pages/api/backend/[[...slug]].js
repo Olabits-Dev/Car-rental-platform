@@ -1,4 +1,22 @@
-import { getBackendService } from "../../../backend/server.mjs";
+/**
+ * Backend API handler with maximum error safety
+ * This handler wraps everything with error boundaries
+ */
+
+let getBackendServiceFn = null;
+
+async function loadBackendService() {
+  try {
+    if (!getBackendServiceFn) {
+      const module = await import("../../../backend/server.mjs");
+      getBackendServiceFn = module.getBackendService;
+    }
+    return getBackendServiceFn;
+  } catch (error) {
+    console.error("[Backend API] Failed to load backend:", error?.message);
+    throw error;
+  }
+}
 
 export const config = {
   api: {
@@ -7,80 +25,60 @@ export const config = {
   },
 };
 
-// Pre-check environment before handling requests
-function validateEnvironment() {
-  const hasDb = Boolean(process.env.DATABASE_URL || process.env.POSTGRES_URL);
-  return { hasDb };
-}
-
 export default async function handler(request, response) {
   try {
-    // Step 1: Environment validation
-    const { hasDb } = validateEnvironment();
+    // Check environment
+    const hasDb = process.env.DATABASE_URL || process.env.POSTGRES_URL;
     if (!hasDb) {
-      console.error("[Backend API] DATABASE_URL is not configured");
+      console.error("[Backend API] DATABASE_URL not configured");
       response.statusCode = 503;
       response.setHeader("Content-Type", "application/json");
-      response.end(
-        JSON.stringify({
-          error: "Backend is not configured. Missing database connection.",
-        })
-      );
+      response.end(JSON.stringify({ error: "Database not configured" }));
       return;
     }
 
-    // Step 2: Get backend service
+    // Load and get backend service
+    let getBackendService;
+    try {
+      getBackendService = await loadBackendService();
+    } catch (loadError) {
+      console.error("[Backend API] Failed to load service:", loadError);
+      response.statusCode = 503;
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ error: "Service load failed" }));
+      return;
+    }
+
+    // Get the app instance
     let app;
     try {
       app = getBackendService();
-      if (!app || typeof app !== "function") {
-        throw new Error("Backend service is not callable");
-      }
-    } catch (serviceError) {
-      console.error(
-        "[Backend API] Service error:",
-        serviceError?.message || serviceError
-      );
+    } catch (getError) {
+      console.error("[Backend API] Failed to get service instance:", getError);
       response.statusCode = 503;
       response.setHeader("Content-Type", "application/json");
-      response.end(
-        JSON.stringify({
-          error: "Backend service failed to initialize.",
-        })
-      );
+      response.end(JSON.stringify({ error: "Service init failed" }));
       return;
     }
 
-    // Step 3: Call backend app
-    try {
-      const result = app(request, response);
-
-      // If result is a promise, await it with error handling
-      if (result && typeof result.catch === "function") {
-        await result.catch((error) => {
-          console.error("[Backend API] App error:", error?.message || error);
-          if (!response.headersSent) {
-            response.statusCode = 503;
-            response.setHeader("Content-Type", "application/json");
-            response.end(JSON.stringify({ error: "Backend request failed." }));
-          }
-        });
-      }
-    } catch (appError) {
-      console.error("[Backend API] Execution error:", appError?.message || appError);
-      if (!response.headersSent) {
-        response.statusCode = 503;
-        response.setHeader("Content-Type", "application/json");
-        response.end(JSON.stringify({ error: "Backend execution failed." }));
-      }
+    // Call the app
+    const result = app(request, response);
+    if (result && typeof result.catch === "function") {
+      await result.catch((err) => {
+        console.error("[Backend API] App error:", err);
+        if (!response.headersSent) {
+          response.statusCode = 503;
+          response.setHeader("Content-Type", "application/json");
+          response.end(JSON.stringify({ error: "Request failed" }));
+        }
+      });
     }
-  } catch (outerError) {
-    // Catch-all for any unexpected errors
-    console.error("[Backend API] Outer catch:", outerError?.message || outerError);
+  } catch (error) {
+    console.error("[Backend API] Outer error:", error);
     if (!response.headersSent) {
       response.statusCode = 500;
       response.setHeader("Content-Type", "application/json");
-      response.end(JSON.stringify({ error: "Internal server error." }));
+      response.end(JSON.stringify({ error: "Internal error" }));
     }
   }
 }
