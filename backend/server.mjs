@@ -21,7 +21,15 @@ import {
 } from "./store.mjs";
 
 const { loadEnvConfig } = nextEnv;
-loadEnvConfig(process.cwd());
+
+// Load environment configuration safely
+try {
+  loadEnvConfig(process.cwd());
+} catch (error) {
+  // In serverless environments, loadEnvConfig might fail silently, which is ok
+  // The environment variables should already be set
+  console.warn("[Backend] loadEnvConfig warning:", error?.message || String(error));
+}
 
 function readSessionToken(request) {
   const authorization = request.headers.authorization;
