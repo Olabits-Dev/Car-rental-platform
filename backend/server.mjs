@@ -1,6 +1,7 @@
 import express from "express";
 import nextEnv from "@next/env";
 import { pathToFileURL } from "node:url";
+import { getSql } from "./db.mjs";
 import {
   authenticateUser,
   BackendStoreError,
@@ -76,11 +77,30 @@ export function createBackendApp(options = {}) {
     });
   });
 
-  router.get("/health", (_request, response) => {
-    response.json({
+  router.get("/health", async (_request, response) => {
+    const health = {
       ok: true,
       service: "rideflex-backend-service",
-    });
+      database: "unknown",
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        hasDatabaseUrl: Boolean(process.env.DATABASE_URL || process.env.POSTGRES_URL),
+      },
+    };
+
+    // Try to check database connectivity
+    try {
+      const sql = getSql();
+      const result = await sql`SELECT 1`;
+      health.database = result ? "connected" : "unreachable";
+    } catch (error) {
+      health.database = "error";
+      health.databaseError = error?.message || String(error);
+      console.error("[Health Check] Database error:", health.databaseError);
+    }
+
+    const statusCode = health.database === "error" ? 503 : 200;
+    response.status(statusCode).json(health);
   });
 
   router.post("/auth/login", async (request, response) => {
