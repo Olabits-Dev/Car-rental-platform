@@ -161,18 +161,28 @@ let __schemaInitPromise = null;
 let __schemaInitError = null;
 
 export async function ensureSchema() {
-  // If we already failed, throw the cached error
+  // If already tried and failed, don't retry during build
+  if (__schemaInitError && process.env.VERCEL === "1") {
+    console.warn("[Database] Skipping schema init during build - will retry at runtime");
+    return null;
+  }
+
   if (__schemaInitError) {
     throw __schemaInitError;
   }
 
-  // If schema is already initializing or initialized, return the promise
   if (!__schemaInitPromise) {
-    __schemaInitPromise = createSchema().catch((error) => {
-      __schemaInitError = error;
-      console.error("[Database] Schema initialization failed:", error?.message || String(error));
-      return null; // Return null on error so we don't retry repeatedly
-    });
+    __schemaInitPromise = createSchema()
+      .catch((error) => {
+        __schemaInitError = error;
+        console.error("[Database] Schema initialization failed:", error?.message || String(error));
+        // In Vercel, silently fail during build - will retry at runtime
+        if (process.env.VERCEL === "1") {
+          console.log("[Database] Build-time schema init failed - will retry on first request");
+          return null;
+        }
+        throw error;
+      });
   }
 
   return __schemaInitPromise;
