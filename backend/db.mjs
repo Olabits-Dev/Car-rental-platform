@@ -31,16 +31,37 @@ function createClient(url, max = 5) {
   });
 }
 
+let __initializationError = null;
+let __sqlClient = null;
+
 export function getSql() {
-  if (!globalThis.__rideflexSqlClient) {
-    globalThis.__rideflexSqlClient = createClient(readDatabaseUrl());
+  if (__initializationError) {
+    throw __initializationError;
   }
 
-  return globalThis.__rideflexSqlClient;
+  if (!__sqlClient) {
+    try {
+      __sqlClient = createClient(readDatabaseUrl());
+    } catch (error) {
+      __initializationError = error;
+      throw error;
+    }
+  }
+
+  return __sqlClient;
 }
 
 async function createSchema() {
-  const sql = createClient(readBootstrapDatabaseUrl(), 1);
+  let sql;
+  
+  try {
+    sql = createClient(readBootstrapDatabaseUrl(), 1);
+  } catch (error) {
+    console.error("[Database] Failed to create bootstrap client:", error.message);
+    throw new Error(
+      "Could not connect to database. Verify DATABASE_URL is configured correctly.",
+    );
+  }
 
   try {
     await sql.unsafe(`

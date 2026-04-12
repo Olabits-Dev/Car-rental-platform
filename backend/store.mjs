@@ -464,10 +464,15 @@ async function bootstrapData() {
 
 export async function ensureBackendReady() {
   if (!globalThis.__rideflexBootstrapPromise) {
-    globalThis.__rideflexBootstrapPromise = bootstrapData().catch((error) => {
-      globalThis.__rideflexBootstrapPromise = undefined;
-      throw error;
-    });
+    globalThis.__rideflexBootstrapPromise = bootstrapData()
+      .catch((error) => {
+        console.error("[Backend] Bootstrap failed:", error?.message || String(error));
+        // Don't reset promise on error - cache the failure to prevent infinite retries
+        throw new BackendStoreError(
+          "Backend service is not ready. Check database configuration.",
+          503,
+        );
+      });
   }
 
   return globalThis.__rideflexBootstrapPromise;
