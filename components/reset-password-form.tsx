@@ -73,9 +73,10 @@ export function ResetPasswordForm({
         <h1 className="font-[var(--font-display)] text-3xl leading-none tracking-tight text-[var(--heading)] sm:text-4xl md:text-5xl">
           Set a new password
         </h1>
-        <p className="text-sm leading-6 text-[var(--muted)] sm:text-base sm:leading-7">
-          For <span className="font-medium text-[var(--heading)]">{maskedEmail}</span>
-        </p>
+        <div className="pt-2">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--muted)]">Resetting password for</p>
+          <p className="mt-1 text-lg font-semibold text-[var(--heading)] break-all">{maskedEmail}</p>
+        </div>
         <p className="text-sm leading-6 text-[var(--muted)] sm:text-base sm:leading-7">
           This link is one-time only. Once you save the new password, we will
           close older sessions for safety.
