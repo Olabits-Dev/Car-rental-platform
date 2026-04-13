@@ -111,14 +111,18 @@ async function backendRequest<T>(path: string, init: BackendRequestOptions = {})
   }
 
   let response: Response;
+  const backendUrl = getBackendApiUrl();
+  const fullUrl = `${backendUrl}${path}`;
 
   try {
-    response = await fetch(`${getBackendApiUrl()}${path}`, {
+    console.log(`[BackendAuth] Fetching: ${fullUrl}`);
+    response = await fetch(fullUrl, {
       cache: "no-store",
       ...init,
       headers,
     });
-  } catch {
+  } catch (error) {
+    console.error(`[BackendAuth] Fetch failed: ${error instanceof Error ? error.message : String(error)}`);
     throw new BackendServiceError(
       "The backend service is unavailable right now.",
       503,

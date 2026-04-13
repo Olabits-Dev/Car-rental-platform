@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient, ApiClientError } from "@/lib/api-client";
 
 type AuthFormProps = {
   mode: "login" | "register";
@@ -38,42 +39,28 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
     ? ["Upcoming trips", "Past bookings", "Faster repeat checkout"]
     : ["Instant sign-in", "Trip dashboard", "Future bookings in one place"];
 
-  function applyDemoCredentials() {
-    setError(null);
-    setForm((current) => ({
-      ...current,
-      email: "alex@rideflex.io",
-      password: "demo12345",
-    }));
-  }
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setPending(true);
 
     try {
-      const response = await fetch(`/api/auth/${mode}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
-
-      const payload = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        setError(payload.error ?? "We could not complete that request.");
-        return;
+      if (mode === "login") {
+        await apiClient.login(form);
+      } else {
+        await apiClient.register(form);
       }
 
       startTransition(() => {
         router.push(redirectTo);
         router.refresh();
       });
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
     } finally {
       setPending(false);
     }
@@ -163,7 +150,7 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
               type="email"
               name="email"
               autoComplete="email"
-              placeholder="alex@rideflex.io"
+              placeholder="your@email.com"
               value={form.email}
               onChange={(event) =>
                 setForm((current) => ({ ...current, email: event.target.value }))
@@ -182,7 +169,7 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
               type="password"
               name="password"
               autoComplete={isLogin ? "current-password" : "new-password"}
-              placeholder={isLogin ? "demo12345" : "Minimum 8 characters"}
+              placeholder={isLogin ? "••••••••" : "Minimum 8 characters"}
               value={form.password}
               onChange={(event) =>
                 setForm((current) => ({ ...current, password: event.target.value }))
@@ -217,26 +204,6 @@ export function AuthForm({ mode, redirectTo }: AuthFormProps) {
               </p>
             ) : null}
           </>
-        ) : null}
-
-        {isLogin ? (
-          <div className="rounded-[1.2rem] border border-[#ececec] bg-[#fafafa] px-4 py-4 text-sm text-[#555555]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                Use the seeded demo account if you want to jump straight in:
-                <span className="mt-2 block font-semibold text-[#111111]">
-                  alex@rideflex.io / demo12345
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={applyDemoCredentials}
-                className="w-full rounded-[0.95rem] border border-[#d9d9d9] bg-white px-4 py-2 text-sm font-semibold text-[#111111] transition hover:border-[#d61032] hover:text-[#d61032] sm:w-auto"
-              >
-                Use demo account
-              </button>
-            </div>
-          </div>
         ) : null}
 
         <button type="submit" disabled={pending} className="button-primary mt-2 w-full">

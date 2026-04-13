@@ -4,14 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -n frontend,backend -c auto \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "dev:frontend": "next dev",
-    "dev:backend": "node backend/server.mjs",
-    "db:bootstrap": "node backend/bootstrap.mjs",
-    "build": "next build",
-    "start": "next start",
-    "start:frontend": "next start",
-    "start:backend": "node backend/server.mjs",
-    "lint": "eslint"
+    "dev:frontend": "cd frontend && next dev",
+    "dev:backend": "node backend/src/server.mjs",
+    "db:bootstrap": "node backend/src/bootstrap.mjs",
+    "build": "cd frontend && next build",
+    "start": "cd frontend && next start",
+    "start:frontend": "cd frontend && next start",
+    "start:backend": "node backend/src/server.mjs",
+    "lint": "eslint frontend/"
   },
   "dependencies": {
     "@next/env": "^16.2.3",

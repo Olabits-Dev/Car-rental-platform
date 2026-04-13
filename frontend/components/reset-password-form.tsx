@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { apiClient, ApiClientError } from "@/lib/api-client";
 
 type ResetPasswordFormProps = {
   token: string;
@@ -35,29 +36,20 @@ export function ResetPasswordForm({
     setPending(true);
 
     try {
-      const response = await fetch("/api/auth/reset-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token,
-          password,
-        }),
+      await apiClient.resetPassword({
+        token,
+        password,
       });
-
-      const payload = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        setError(payload.error ?? "We could not reset the password.");
-        return;
-      }
 
       setCompleted(true);
       setPassword("");
       setConfirmPassword("");
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
     } finally {
       setPending(false);
     }

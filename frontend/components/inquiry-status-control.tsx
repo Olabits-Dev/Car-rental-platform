@@ -2,6 +2,7 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient, ApiClientError } from "@/lib/api-client";
 import type { InquiryStatus } from "@/lib/types";
 
 type InquiryStatusControlProps = {
@@ -34,26 +35,17 @@ export function InquiryStatusControl({
     setError(null);
 
     try {
-      const response = await fetch(`/api/inquiries/${inquiryId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: nextStatus }),
-      });
-
-      const payload = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        setError(payload.error ?? "Could not update the inquiry.");
-        return;
-      }
+      await apiClient.updateInquiry(inquiryId, { status: nextStatus });
 
       startTransition(() => {
         router.refresh();
       });
-    } catch {
-      setError("Could not update the inquiry.");
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setError(err.message);
+      } else {
+        setError("Could not update the inquiry.");
+      }
     } finally {
       setPendingStatus(null);
     }

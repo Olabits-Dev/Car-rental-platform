@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { apiClient, ApiClientError } from "@/lib/api-client";
 
 type ForgotPasswordFormState = {
   email: string;
@@ -25,28 +26,15 @@ export function ForgotPasswordForm() {
     setPreviewUrl(null);
 
     try {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
-
-      const payload = (await response.json()) as {
-        error?: string;
-        previewUrl?: string;
-      };
-
-      if (!response.ok) {
-        setError(payload.error ?? "We could not start the reset flow.");
-        return;
-      }
-
+      const payload = await apiClient.forgotPassword(form);
       setCompleted(true);
       setPreviewUrl(payload.previewUrl ?? null);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
     } finally {
       setPending(false);
     }
@@ -103,7 +91,7 @@ export function ForgotPasswordForm() {
               type="email"
               name="email"
               autoComplete="email"
-              placeholder="alex@rideflex.io"
+              placeholder=\"your@email.com\"
               value={form.email}
               onChange={(event) =>
                 setForm((current) => ({ ...current, email: event.target.value }))

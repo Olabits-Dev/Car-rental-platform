@@ -2,6 +2,7 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiClient, ApiClientError } from "@/lib/api-client";
 import { calculateBookingPrice, formatCurrency, formatDuration } from "@/lib/format";
 import type { DealOffer } from "@/lib/types";
 
@@ -86,26 +87,17 @@ export function BookingForm({
     setPending(true);
 
     try {
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          carId,
-          ...form,
-          offerCode: offer?.code,
-        }),
+      const response = await apiClient.createBooking({
+        carId,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        offerCode: offer?.code,
       });
 
-      const payload = (await response.json()) as {
-        booking?: { id: string };
-        error?: string;
-      };
-      const bookingId = payload.booking?.id;
+      const bookingId = response.booking?.id;
 
-      if (!response.ok || !bookingId) {
-        setError(payload.error ?? "We could not create your booking.");
+      if (!bookingId) {
+        setError("We could not create your booking.");
         return;
       }
 
@@ -113,8 +105,12 @@ export function BookingForm({
         router.push(`/dashboard?booking=${bookingId}`);
         router.refresh();
       });
-    } catch {
-      setError("We could not reach the booking service. Please try again.");
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setError(err.message);
+      } else {
+        setError("We could not reach the booking service. Please try again.");
+      }
     } finally {
       setPending(false);
     }

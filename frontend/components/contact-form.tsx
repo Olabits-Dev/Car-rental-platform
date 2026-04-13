@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiClient, ApiClientError } from "@/lib/api-client";
 import type { CarType } from "@/lib/types";
 
 type ContactFormProps = {
@@ -39,35 +40,23 @@ export function ContactForm({ locations, vehicleTypes }: ContactFormProps) {
     setSuccessId(null);
 
     try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          phone: form.phone || undefined,
-          location: form.location || undefined,
-          vehicleType: form.vehicleType || undefined,
-          message: form.message,
-        }),
+      const response = await apiClient.createInquiry({
+        name: form.name,
+        email: form.email,
+        phone: form.phone || undefined,
+        location: form.location || undefined,
+        vehicleType: form.vehicleType || undefined,
+        message: form.message,
       });
 
-      const payload = (await response.json()) as {
-        error?: string;
-        inquiry?: { id: string };
-      };
-
-      if (!response.ok) {
-        setError(payload.error ?? "We could not send your message right now.");
-        return;
-      }
-
-      setSuccessId(payload.inquiry?.id ?? null);
+      setSuccessId(response.inquiry?.id ?? null);
       setForm(baseState);
-    } catch {
-      setError("Something went wrong while sending your message.");
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong while sending your message.");
+      }
     } finally {
       setPending(false);
     }
