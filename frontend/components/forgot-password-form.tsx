@@ -91,7 +91,7 @@ export function ForgotPasswordForm() {
               type="email"
               name="email"
               autoComplete="email"
-              placeholder=\"your@email.com\"
+              placeholder="your@email.com"
               value={form.email}
               onChange={(event) =>
                 setForm((current) => ({ ...current, email: event.target.value }))
