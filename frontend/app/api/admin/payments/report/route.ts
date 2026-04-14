@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendApiUrl } from "@/lib/env";
 import {
   getAuthUserBySessionToken,
 } from "@/lib/backend-auth";
@@ -22,8 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Call backend API to get payment reports
-    const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:3001";
-    const response = await fetch(`${backendUrl}/api/admin/payments/report`, {
+    const response = await fetch(`${getBackendApiUrl()}/admin/payments/report`, {
       headers: {
         Authorization: `Bearer ${sessionToken}`,
       },

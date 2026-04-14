@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { getBackendApiUrl } from "@/lib/env";
 
 /**
  * Verify the webhook signature from Paystack
@@ -80,8 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update payment in database
-    const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:3001";
-    const webhookResponse = await fetch(`${backendUrl}/api/payment/webhook`, {
+    const webhookResponse = await fetch(`${getBackendApiUrl()}/payment/webhook`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
