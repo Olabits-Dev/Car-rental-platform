@@ -63,7 +63,7 @@ function toPublicUser(row) {
   };
 }
 
-function toBookingRecord(row, user, assignedAgent) {
+function toBookingRecord(row, user, assignedAgent, payment) {
   const car = getCarSummary(row.car_id);
 
   if (!car) {
@@ -87,6 +87,7 @@ function toBookingRecord(row, user, assignedAgent) {
     car,
     user: user ?? null,
     assignedAgent: assignedAgent ?? null,
+    payment: payment ?? null,
   };
 }
 
@@ -132,11 +133,34 @@ async function enrichBookings(sql, rows) {
     rows.flatMap((row) => [row.user_id, row.assigned_agent_id]),
   );
 
+  // Fetch payment information for all bookings
+  const paymentIds = rows
+    .map((row) => row.payment_id)
+    .filter((id) => id != null);
+
+  const paymentMap = new Map();
+  if (paymentIds.length > 0) {
+    const payments = await sql`
+      SELECT id, status, amount, reference
+      FROM rideflex_payments
+      WHERE id IN ${sql(paymentIds)}
+    `;
+    payments.forEach((payment) => {
+      paymentMap.set(payment.id, {
+        id: payment.id,
+        status: payment.status,
+        amount: Number(payment.amount),
+        reference: payment.reference,
+      });
+    });
+  }
+
   return rows.map((row) =>
     toBookingRecord(
       row,
       userMap.get(row.user_id) ?? null,
       row.assigned_agent_id ? (userMap.get(row.assigned_agent_id) ?? null) : null,
+      row.payment_id ? paymentMap.get(row.payment_id) : null,
     ),
   );
 }
@@ -823,7 +847,7 @@ export async function createBooking(input) {
     SELECT id
     FROM rideflex_bookings
     WHERE car_id = ${input.carId}
-      AND status <> 'cancelled'
+      AND status NOT IN ('cancelled', 'pending')
       AND ${input.startDate}::timestamptz < end_date
       AND start_date < ${input.endDate}::timestamptz
     LIMIT 1
@@ -874,7 +898,7 @@ export async function createBooking(input) {
         input.endDate,
       )},
       ${dealOffer?.code ?? null},
-      ${"confirmed"},
+      ${"pending"},
       ${assignedAgentId},
       NOW()
     )

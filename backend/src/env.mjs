@@ -51,3 +51,18 @@ export function getSmtpConfig() {
       process.env.SMTP_SECURE?.trim() === "true" || port === 465,
   };
 }
+
+export function getPaystackConfig() {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY?.trim();
+  const publicKey = process.env.PAYSTACK_PUBLIC_KEY?.trim();
+
+  if (!secretKey || !publicKey) {
+    return null;
+  }
+
+  return {
+    secretKey,
+    publicKey,
+    baseUrl: "https://api.paystack.co",
+  };
+}

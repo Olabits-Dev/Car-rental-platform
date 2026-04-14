@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiClient, ApiClientError } from "@/lib/api-client";
 import { calculateBookingPrice, formatCurrency, formatDuration } from "@/lib/format";
@@ -36,6 +36,11 @@ function getInitialBookingRange() {
   };
 }
 
+function getMinPickupDate() {
+  const minDate = new Date(Date.now() + 1000 * 60 * 60);
+  return toLocalDateTimeValue(minDate);
+}
+
 export function BookingForm({
   carId,
   pricePerDay,
@@ -46,6 +51,7 @@ export function BookingForm({
   const [form, setForm] = useState(getInitialBookingRange);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const minPickupDate = useMemo(() => getMinPickupDate(), []);
 
   const hasValidRange =
     Boolean(form.startDate) &&
@@ -87,31 +93,63 @@ export function BookingForm({
     setPending(true);
 
     try {
-      const response = await apiClient.createBooking({
+      // Step 1: Create booking
+      const bookingResponse = await apiClient.createBooking({
         carId,
         startDate: form.startDate,
         endDate: form.endDate,
         offerCode: offer?.code,
       });
 
-      const bookingId = response.booking?.id;
+      const bookingId = bookingResponse.booking?.id;
+      const bookingTotal = bookingResponse.booking?.totalPrice;
 
-      if (!bookingId) {
+      if (!bookingId || !bookingTotal) {
         setError("We could not create your booking.");
+        setPending(false);
         return;
       }
 
-      startTransition(() => {
-        router.push(`/dashboard?booking=${bookingId}`);
-        router.refresh();
+      // Step 2: Initialize payment
+      const paymentResponse = await fetch("/api/payments/initialize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bookingId,
+          amount: bookingTotal,
+        }),
       });
+
+      if (!paymentResponse.ok) {
+        const errorData = await paymentResponse.json();
+        setError(errorData.error || "Payment initialization failed");
+        setPending(false);
+        return;
+      }
+
+      const paymentData = await paymentResponse.json();
+
+      // Step 3: Store payment ID before redirecting
+      if (paymentData.payment?.id) {
+        sessionStorage.setItem("paymentId", paymentData.payment.id);
+        sessionStorage.setItem("bookingId", bookingId);
+      }
+
+      // Step 4: Redirect to Paystack payment page
+      if (paymentData.payment?.authorizationUrl) {
+        window.location.href = paymentData.payment.authorizationUrl;
+      } else {
+        setError("Could not redirect to payment page");
+        setPending(false);
+      }
     } catch (err) {
       if (err instanceof ApiClientError) {
         setError(err.message);
       } else {
         setError("We could not reach the booking service. Please try again.");
       }
-    } finally {
       setPending(false);
     }
   }
@@ -157,7 +195,7 @@ export function BookingForm({
             required
             type="datetime-local"
             name="startDate"
-            min={toLocalDateTimeValue(new Date(Date.now() + 1000 * 60 * 60))}
+            min={minPickupDate}
             value={form.startDate}
             onChange={(event) =>
               setForm((current) => ({ ...current, startDate: event.target.value }))

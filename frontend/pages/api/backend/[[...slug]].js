@@ -8,8 +8,8 @@ let getBackendServiceFn = null;
 async function loadBackendService() {
   try {
     if (!getBackendServiceFn) {
-      const module = await import('../../../../backend/src/server.mjs');
-      getBackendServiceFn = module.getBackendService;
+      const backendModule = await import("../../../../backend/src/server.mjs");
+      getBackendServiceFn = backendModule.getBackendService;
     }
     return getBackendServiceFn;
   } catch (error) {

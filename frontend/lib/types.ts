@@ -14,7 +14,9 @@ export type UserRole = "owner" | "agent" | "member";
 
 export type InquiryStatus = "new" | "in_progress" | "resolved";
 
-export type BookingStatus = "confirmed" | "completed" | "cancelled";
+export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
+
+export type PaymentStatus = "pending" | "success" | "failed" | "abandoned";
 
 export type CarGalleryImage = {
   src: string;
@@ -76,6 +78,16 @@ export type Booking = {
   createdAt: string;
 };
 
+export type Payment = {
+  id: string;
+  userId: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  reference?: string;
+  createdAt: string;
+};
+
 export type CarSummary = Pick<
   Car,
   | "id"
@@ -95,6 +107,7 @@ export type BookingWithCar = Booking & {
   car: CarSummary;
   user?: PublicUser | null;
   assignedAgent?: PublicUser | null;
+  payment?: Payment | null;
 };
 
 export type CreateBookingInput = {

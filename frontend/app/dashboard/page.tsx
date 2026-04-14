@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
 import { InquiryStatusControl } from "@/components/inquiry-status-control";
 import { LogoutButton } from "@/components/logout-button";
+import { PaymentStatusBadge } from "@/components/payment-status";
+import { CompleteCheckoutButton } from "@/components/complete-checkout-button";
 import { getDashboardWithAuthService } from "@/lib/backend-auth";
 import { formatCurrency, formatDateRange } from "@/lib/format";
 import { getFirstValue, type SearchParamRecord } from "@/lib/query";
@@ -43,6 +45,35 @@ const inquiryStatusClassName: Record<InquiryStatus, string> = {
 };
 
 function BookingSummaryCard({ booking }: { booking: BookingWithCar }) {
+  const paymentStatus = booking.payment?.status;
+  const needsCheckout =
+    booking.status === "pending" && paymentStatus !== "success";
+
+  const checkoutCopy =
+    paymentStatus === "failed"
+      ? {
+          title: "Payment attempt failed",
+          description:
+            "Your booking is still on hold. Retry checkout to confirm this trip.",
+        }
+      : paymentStatus === "abandoned"
+        ? {
+            title: "Checkout was not completed",
+            description:
+              "Your booking is still reserved temporarily. Return to checkout to confirm it.",
+          }
+        : paymentStatus === "pending"
+          ? {
+              title: "Finish your checkout",
+              description:
+                "Your booking has been created, but payment is still pending. Complete checkout to confirm this trip.",
+            }
+          : {
+              title: "Payment pending",
+              description:
+                "This booking is waiting for payment. Complete checkout from your dashboard to lock it in.",
+            };
+
   return (
     <article className="glass-panel overflow-hidden p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -81,6 +112,24 @@ function BookingSummaryCard({ booking }: { booking: BookingWithCar }) {
           </div>
         ))}
       </div>
+      {booking.payment && (
+        <div className="mt-5">
+          <PaymentStatusBadge status={booking.payment.status} />
+        </div>
+      )}
+      {needsCheckout && (
+        <div className="mt-5 space-y-3">
+          <div className="rounded-[1.2rem] border border-[#fde68a] bg-[#fffbeb] p-4">
+            <p className="text-sm font-semibold text-[#92400e]">
+              {checkoutCopy.title}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[#a16207]">
+              {checkoutCopy.description}
+            </p>
+          </div>
+          <CompleteCheckoutButton booking={booking} />
+        </div>
+      )}
     </article>
   );
 }

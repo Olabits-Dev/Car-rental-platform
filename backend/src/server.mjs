@@ -1,3 +1,4 @@
+import "dotenv/config.js";
 import express from "express";
 import nextEnv from "@next/env";
 import { pathToFileURL } from "node:url";
@@ -19,6 +20,12 @@ import {
   validatePasswordResetToken,
   updateInquiryStatus,
 } from "./store.mjs";
+import {
+  initializePayment,
+  verifyPayment,
+  getPaymentStatus,
+  PaystackServiceError,
+} from "./paystack.mjs";
 
 const { loadEnvConfig } = nextEnv;
 
@@ -322,6 +329,250 @@ export function createBackendApp(options = {}) {
         error,
         response,
         "Could not update that inquiry right now.",
+      );
+    }
+  });
+
+  router.post("/payment/initialize", async (request, response) => {
+    try {
+      const user = await getUserFromSessionToken(readSessionToken(request));
+
+      if (!user) {
+        response.status(401).json({ error: "Please log in first." });
+        return;
+      }
+
+      const bookingId = request.body?.bookingId ?? "";
+      const amount = request.body?.amount;
+
+      if (!bookingId || !amount || amount <= 0) {
+        response.status(400).json({ error: "Invalid booking ID or amount." });
+        return;
+      }
+
+      const payment = await initializePayment(
+        user.id,
+        amount,
+        user.email,
+        bookingId
+      );
+
+      // Link payment to booking
+      const sql = getSql();
+      await sql`
+        UPDATE rideflex_bookings
+        SET payment_id = ${payment.id}
+        WHERE id = ${bookingId} AND user_id = ${user.id}
+      `;
+
+      response.status(201).json({
+        payment: {
+          id: payment.id,
+          authorizationUrl: payment.authorizationUrl,
+          reference: payment.reference,
+        }
+      });
+    } catch (error) {
+      if (error instanceof PaystackServiceError) {
+        response.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      handleError(
+        error,
+        response,
+        "Could not initialize payment.",
+      );
+    }
+  });
+
+  router.post("/payment/verify", async (request, response) => {
+    try {
+      const user = await getUserFromSessionToken(readSessionToken(request));
+
+      if (!user) {
+        response.status(401).json({ error: "Please log in first." });
+        return;
+      }
+
+      const reference = request.body?.reference ?? "";
+      const paymentId = request.body?.paymentId ?? "";
+
+      if (!reference || !paymentId) {
+        response.status(400).json({ error: "Missing reference or paymentId." });
+        return;
+      }
+
+      const paymentResult = await verifyPayment(reference);
+
+      if (paymentResult.status === "success") {
+        // Update booking status to confirmed when payment succeeds
+        const sql = getSql();
+        await sql`
+          UPDATE rideflex_bookings
+          SET status = 'confirmed'
+          WHERE payment_id = ${paymentId} AND user_id = ${user.id}
+        `;
+      }
+
+      response.json({
+        status: paymentResult.status,
+        message: paymentResult.status === "success" 
+          ? "Payment successful" 
+          : "Payment failed"
+      });
+    } catch (error) {
+      if (error instanceof PaystackServiceError) {
+        response.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      handleError(
+        error,
+        response,
+        "Could not verify payment.",
+      );
+    }
+  });
+
+  router.get("/payment/status", async (request, response) => {
+    try {
+      const user = await getUserFromSessionToken(readSessionToken(request));
+
+      if (!user) {
+        response.status(401).json({ error: "Please log in first." });
+        return;
+      }
+
+      const paymentId = String(request.query?.paymentId ?? "");
+
+      if (!paymentId) {
+        response.status(400).json({ error: "Missing paymentId." });
+        return;
+      }
+
+      const payment = await getPaymentStatus(paymentId);
+
+      // Verify ownership
+      const sql = getSql();
+      const booking = await sql`
+        SELECT user_id FROM rideflex_bookings WHERE payment_id = ${paymentId}
+      `;
+
+      if (booking.length === 0 || booking[0].user_id !== user.id) {
+        response.status(403).json({ error: "Unauthorized." });
+        return;
+      }
+
+      response.json(payment);
+    } catch (error) {
+      if (error instanceof PaystackServiceError) {
+        response.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      handleError(
+        error,
+        response,
+        "Could not get payment status.",
+      );
+    }
+  });
+
+  router.post("/payment/webhook", async (request, response) => {
+    try {
+      const reference = request.body?.reference ?? "";
+      const status = request.body?.status ?? "";
+
+      if (!reference || !status) {
+        response.status(400).json({ error: "Invalid webhook data." });
+        return;
+      }
+
+      const sql = getSql();
+
+      // Update payment status
+      await sql`
+        UPDATE rideflex_payments
+        SET status = ${status}, updated_at = NOW()
+        WHERE reference = ${reference}
+      `;
+
+      // If payment successful, confirm the booking
+      if (status === "success") {
+        await sql`
+          UPDATE rideflex_bookings
+          SET status = 'confirmed'
+          WHERE payment_id IN (
+            SELECT id FROM rideflex_payments WHERE reference = ${reference}
+          ) AND status = 'pending'
+        `;
+      }
+
+      response.json({ ok: true });
+    } catch (error) {
+      console.error("[Webhook] Error processing payment webhook:", error?.message || String(error));
+      response.status(500).json({ error: "Webhook processing failed." });
+    }
+  });
+
+  router.get("/admin/payments/report", async (request, response) => {
+    try {
+      const user = await getUserFromSessionToken(readSessionToken(request));
+
+      if (!user || (user.role !== "owner" && user.role !== "agent")) {
+        response.status(403).json({ error: "Unauthorized." });
+        return;
+      }
+
+      const sql = getSql();
+
+      // Get payment statistics
+      const stats = await sql`
+        SELECT
+          COUNT(*) FILTER (WHERE status = 'success')::int as successful_payments,
+          COUNT(*) FILTER (WHERE status = 'pending')::int as pending_payments,
+          COUNT(*) FILTER (WHERE status = 'failed')::int as failed_payments,
+          SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END)::bigint as total_received,
+          AVG(CASE WHEN status = 'success' THEN amount ELSE NULL END)::bigint as avg_transaction
+        FROM rideflex_payments
+      `;
+
+      // Get recent payments
+      const payments = await sql`
+        SELECT
+          p.id,
+          p.user_id,
+          u.name as user_name,
+          u.email as user_email,
+          p.amount,
+          p.status,
+          p.reference,
+          p.created_at,
+          (SELECT COUNT(*) FROM rideflex_bookings WHERE payment_id = p.id) as associated_bookings
+        FROM rideflex_payments p
+        LEFT JOIN rideflex_users u ON p.user_id = u.id
+        ORDER BY p.created_at DESC
+        LIMIT 100
+      `;
+
+      response.json({
+        stats: stats[0],
+        payments: payments.map((p) => ({
+          id: p.id,
+          userId: p.user_id,
+          userName: p.user_name,
+          userEmail: p.user_email,
+          amount: Number(p.amount),
+          status: p.status,
+          reference: p.reference,
+          createdAt: p.created_at,
+          associatedBookings: Number(p.associated_bookings),
+        })),
+      });
+    } catch (error) {
+      console.error("[Admin] Error getting payment report:", error?.message || String(error));
+      handleError(
+        error,
+        response,
+        "Could not fetch payment report.",
       );
     }
   });

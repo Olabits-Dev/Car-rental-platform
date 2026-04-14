@@ -93,6 +93,21 @@ async function createSchema() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS rideflex_payments (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES rideflex_users(id) ON DELETE CASCADE,
+        amount INTEGER NOT NULL,
+        currency TEXT NOT NULL DEFAULT 'NGN',
+        status TEXT NOT NULL DEFAULT 'pending'
+          CHECK (status IN ('pending', 'success', 'failed', 'abandoned')),
+        payment_method TEXT NOT NULL DEFAULT 'paystack',
+        reference TEXT UNIQUE,
+        access_code TEXT,
+        authorization_url TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS rideflex_bookings (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL REFERENCES rideflex_users(id) ON DELETE CASCADE,
@@ -101,8 +116,9 @@ async function createSchema() {
         end_date TIMESTAMPTZ NOT NULL,
         total_price INTEGER NOT NULL,
         offer_code TEXT,
-        status TEXT NOT NULL DEFAULT 'confirmed'
-          CHECK (status IN ('confirmed', 'completed', 'cancelled')),
+        payment_id TEXT REFERENCES rideflex_payments(id) ON DELETE SET NULL,
+        status TEXT NOT NULL DEFAULT 'pending'
+          CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
         assigned_agent_id TEXT REFERENCES rideflex_users(id) ON DELETE SET NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
@@ -134,6 +150,15 @@ async function createSchema() {
       CREATE INDEX IF NOT EXISTS rideflex_sessions_user_id_idx
         ON rideflex_sessions (user_id);
 
+      CREATE INDEX IF NOT EXISTS rideflex_payments_user_id_idx
+        ON rideflex_payments (user_id);
+
+      CREATE INDEX IF NOT EXISTS rideflex_payments_reference_idx
+        ON rideflex_payments (reference);
+
+      CREATE INDEX IF NOT EXISTS rideflex_payments_status_idx
+        ON rideflex_payments (status, created_at DESC);
+
       CREATE INDEX IF NOT EXISTS rideflex_bookings_user_id_idx
         ON rideflex_bookings (user_id);
 
@@ -152,6 +177,54 @@ async function createSchema() {
       CREATE INDEX IF NOT EXISTS rideflex_password_reset_tokens_expires_at_idx
         ON rideflex_password_reset_tokens (expires_at);
     `);
+
+    // Try to add payment_id column to existing bookings table if it doesn't exist
+    try {
+      await sql.unsafe(`
+        ALTER TABLE rideflex_bookings
+        ADD COLUMN payment_id TEXT REFERENCES rideflex_payments(id) ON DELETE SET NULL;
+      `);
+      console.log("[Database] Added payment_id column to rideflex_bookings");
+    } catch (error) {
+      // Column might already exist, which is fine
+      if (!error.message.includes("already exists")) {
+        console.warn("[Database] Could not add payment_id column:", error?.message);
+      }
+    }
+
+    // Create payment_id index after column is ensured to exist
+    try {
+      await sql.unsafe(`
+        CREATE INDEX IF NOT EXISTS rideflex_bookings_payment_id_idx
+        ON rideflex_bookings (payment_id);
+      `);
+    } catch (error) {
+      console.warn("[Database] Could not create payment_id index:", error?.message);
+    }
+
+    // Update the status CHECK constraint to include 'pending'
+    try {
+      await sql.unsafe(`
+        ALTER TABLE rideflex_bookings
+        DROP CONSTRAINT IF EXISTS rideflex_bookings_status_check;
+      `);
+      console.log("[Database] Dropped old status constraint");
+    } catch (error) {
+      console.warn("[Database] Could not drop status constraint:", error?.message);
+    }
+
+    try {
+      await sql.unsafe(`
+        ALTER TABLE rideflex_bookings
+        ADD CONSTRAINT rideflex_bookings_status_check 
+        CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled'));
+      `);
+      console.log("[Database] Added new status constraint with 'pending' status");
+    } catch (error) {
+      if (!error.message.includes("already exists")) {
+        console.warn("[Database] Could not add status constraint:", error?.message);
+      }
+    }
   } finally {
     await sql.end({ timeout: 5 }).catch(() => undefined);
   }
