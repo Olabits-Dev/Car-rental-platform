@@ -1,4 +1,6 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend/.next",
   "functions": {
     "pages/api/backend/[[...slug]].js": {
       "maxDuration": 30
